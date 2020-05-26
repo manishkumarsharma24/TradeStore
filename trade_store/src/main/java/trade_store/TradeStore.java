@@ -31,7 +31,9 @@ public class TradeStore {
 		if(tradesById == null || tradesById.size() == 0) {
 			tradesById = new LinkedList<Trade>();
 			tradesById.add(trade);
-			activeTrades.put(trade.getTradeId(), tradesById);
+			synchronized (activeTrades) {
+				activeTrades.put(trade.getTradeId(), tradesById);
+			}
 			return;
 		}
 		
@@ -46,7 +48,9 @@ public class TradeStore {
 			}
 		}
 		
-		tradesById.addFirst(trade);
+		synchronized (activeTrades) {
+			tradesById.addFirst(trade);
+		}
 	}
 	
 	/**
@@ -60,12 +64,15 @@ public class TradeStore {
 			if(this.activeTrades.get(tradeId).getFirst().isTradeMaturityDateBeforeCurrentDate()) {
 				LinkedList<Trade> tradesById = this.activeTrades.get(tradeId);
 				tradesById.forEach(trade -> trade.setExpired("Y"));
-				if(expiredTrades.get(tradeId) == null) {
-					expiredTrades.put(tradeId,tradesById);
-				}else {
-					expiredTrades.get(tradeId).addAll(0, tradesById);
+				synchronized (this) {
+					if(expiredTrades.get(tradeId) == null) {
+						expiredTrades.put(tradeId,tradesById);
+					}else {
+						expiredTrades.get(tradeId).addAll(0, tradesById);
+					}
+					iterator.remove();
 				}
-				iterator.remove();
+				
 			}
 		}
 	}
